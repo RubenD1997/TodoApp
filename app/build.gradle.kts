@@ -56,6 +56,9 @@ dependencies {
     implementation(libs.dagger.hilt.android)
     kapt(libs.hilt.compiler)
 
+    //LiveData
+    implementation(libs.androidx.runtime.livedata)
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

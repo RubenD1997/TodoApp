@@ -27,17 +27,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.setValue
 
 @Composable
 fun TasksScreen(modifier: Modifier, tasksViewModel: TasksViewModel) {
-    var showDialog by rememberSaveable { mutableStateOf(false) }
+    val showDialog: Boolean by tasksViewModel.showDialog.observeAsState(initial = false)
     Box(modifier = modifier.fillMaxSize()) {
-        AddTaskDialog(showDialog) { _ ->
-            showDialog = false
+        AddTaskDialog(showDialog) { actonTask ->
+            when (actonTask) {
+                is ActionDialog.AddTask -> tasksViewModel.onTaskCreate(actonTask.task)
+                ActionDialog.Dismiss -> tasksViewModel.onDialogClose()
+            }
+            tasksViewModel.onDialogClose()
         }
         FabDialog(modifier = Modifier.align(Alignment.BottomEnd)) {
-            showDialog = true
+            tasksViewModel.onDialogShow()
         }
     }
 }
@@ -52,13 +57,18 @@ fun FabDialog(modifier: Modifier, openDialog: () -> Unit) {
     }
 }
 
+sealed class ActionDialog() {
+    data class AddTask(val task: String) : ActionDialog()
+    data object Dismiss : ActionDialog()
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTaskDialog(show: Boolean = false, onTaskAdded: (String) -> Unit) {
+fun AddTaskDialog(show: Boolean = false, onDialogAction: (ActionDialog) -> Unit) {
     var myTask by rememberSaveable { mutableStateOf("") }
     if (show) {
-        BasicAlertDialog(onDismissRequest = { }) {
+        BasicAlertDialog(onDismissRequest = { onDialogAction(ActionDialog.Dismiss) }) {
             Card(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
@@ -86,7 +96,7 @@ fun AddTaskDialog(show: Boolean = false, onTaskAdded: (String) -> Unit) {
                     )
                     Spacer(modifier = Modifier.size(16.dp))
                     Button(onClick = {
-                        onTaskAdded(myTask)
+                        onDialogAction(ActionDialog.AddTask(myTask))
                     }, modifier = Modifier.fillMaxWidth()) {
                         Text(text = "Añadir tarea")
                     }
